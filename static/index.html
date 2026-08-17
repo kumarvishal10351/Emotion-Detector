@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Lab — Text Analysis</title>
+    <meta name="description" content="Editorial text analysis instrument powered by BiGRU neural network. Detects Joy, Sadness, Love, Anger, Fear, and Surprise.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS Reset & Variables ===== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-page: #f9f9f8;
+            --bg-surface: #ffffff;
+            --bg-subtle: #f4f4f2;
+            --bg-hover: #ecece9;
+            --bg-active: #e2e2dd;
+            
+            --border-color: #e5e7eb;
+            --border-dark: #d1d5db;
+            --border-focus: #823700;
+
+            --text-primary: #1c1b1b;
+            --text-secondary: #585f6c;
+            --text-muted: #8b92a0;
+
+            --primary: #823700;
+            --primary-hover: #6d2e00;
+            --primary-light: #fff7ed;
+            --primary-dim: #fed7aa;
+
+            --tertiary: #823700;
+            --tertiary-hover: #6d2e00;
+            --tertiary-light: #fff7ed;
+            --tertiary-dim: #fed7aa;
+
+            --success: #16a34a;
+            --error: #dc2626;
+
+            /* Specific Emotion Accents for visualization */
+            --emotion-joy: #eab308;
+            --emotion-sadness: #3b82f6;
+            --emotion-love: #ec4899;
+            --emotion-anger: #ef4444;
+            --emotion-fear: #8b5cf6;
+            --emotion-surprise: #10b981;
+
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --transition: 0.15s ease-in-out;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Typography Tokens ===== */
+        .meta-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        /* ===== Navbar Header ===== */
+        .site-header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .header-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+            transition: background-color var(--transition);
+        }
+
+        .status-dot.online {
+            background-color: var(--success);
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+        }
+
+        .status-dot.offline {
+            background-color: var(--error);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+
+        .nav-link {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--primary);
+            text-decoration: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            transition: background-color var(--transition);
+        }
+
+        .nav-link:hover {
+            background-color: var(--primary-light);
+        }
+
+        /* ===== Main Container ===== */
+        .main-content {
+            flex: 1;
+            max-width: 1280px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* ===== Page Title Section ===== */
+        .page-intro {
+            margin-bottom: -16px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 6px;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* ===== 2-Column Grid Workspace ===== */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        @media (min-width: 1024px) {
+            .workspace-grid {
+                grid-template-columns: 7fr 5fr;
+            }
+        }
+
+        /* ===== Card Surface ===== */
+        .editorial-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        /* ===== Text Area & Controls ===== */
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .textarea-box {
+            width: 100%;
+            min-height: 220px;
+            flex: 1;
+            padding: 14px 16px;
+            font-family: var(--font-sans);
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            resize: vertical;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .textarea-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        .textarea-box:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(130, 55, 0, 0.08);
+        }
+
+        .samples-group {
+            margin-top: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sample-chip {
+            padding: 4px 10px;
+            background-color: var(--bg-subtle);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sample-chip:hover {
+            background-color: var(--tertiary-light);
+            border-color: var(--tertiary-dim);
+            color: var(--tertiary);
+        }
+
+        .action-bar {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .shortcut-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .shortcut-hint kbd {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: var(--text-secondary);
+        }
+
+        .btn-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-ghost {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .btn-ghost:hover {
+            background-color: var(--bg-subtle);
+            color: var(--text-primary);
+            border-color: var(--border-dark);
+        }
+
+        .btn-primary {
+            background-color: var(--tertiary);
+            color: #ffffff;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 20px;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color var(--transition), transform var(--transition), opacity var(--transition);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--tertiary-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== Right Column: Analysis Panel ===== */
+        .analysis-panel {
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Empty State */
+        .analysis-empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .analysis-empty-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        .analysis-empty-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            max-width: 240px;
+        }
+
+        /* Top Highlight Result */
+        .top-result {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-main-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .result-emoji {
+            font-size: 36px;
+            line-height: 1;
+        }
+
+        .result-emotion-title {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+            color: var(--primary);
+            line-height: 1.1;
+        }
+
+        .result-confidence-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ===== Emotional Profile Bars (Stitch Thin Style) ===== */
+        .profile-section-title {
+            margin-bottom: 16px;
+        }
+
+        .distribution-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .dist-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .dist-label {
+            width: 80px;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.03em;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dist-row.is-active .dist-label {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .dist-track-wrap {
+            flex: 1;
+            margin: 0 14px;
+            height: 2px;
+            background-color: var(--border-color);
+            border-radius: 999px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dist-fill {
+            height: 100%;
+            background-color: var(--text-muted);
+            border-radius: 999px;
+            width: 0;
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dist-row.is-active .dist-fill {
+            background-color: var(--primary);
+            height: 2px;
+        }
+
+        .dist-value {
+            width: 48px;
+            text-align: right;
+            font-size: 12px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-secondary);
+        }
+
+        .dist-row.is-active .dist-value {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* ===== Recent Analyses Section ===== */
+        .history-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .history-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-clear-history {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color var(--transition);
+        }
+
+        .btn-clear-history:hover {
+            color: var(--error);
+        }
+
+        .history-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .history-table th {
+            padding: 10px 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            background-color: var(--bg-page);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-row {
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color var(--transition);
+        }
+
+        .history-row:last-child {
+            border-bottom: none;
+        }
+
+        .history-row:hover {
+            background-color: var(--bg-subtle);
+        }
+
+        .history-cell {
+            padding: 12px 20px;
+            vertical-align: middle;
+        }
+
+        .history-pred-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .history-tag {
+            font-size: 11px;
+            font-weight: 600;
+            background-color: var(--bg-subtle);
+            color: var(--text-secondary);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+        }
+
+        .history-text-preview {
+            color: var(--text-secondary);
+            max-width: 480px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-time {
+            color: var(--text-muted);
+            text-align: right;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        .empty-history-msg {
+            padding: 32px 20px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ===== Technical Footer ===== */
+        .site-footer {
+            background-color: var(--bg-surface);
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+            padding: 16px 24px;
+        }
+
+        .footer-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        @media (min-width: 768px) {
+            .footer-inner {
+                flex-direction: row;
+            }
+        }
+
+        .footer-specs {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        /* ===== Error Toast Notification ===== */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #1c1b1b;
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast-notification.is-visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .toast-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+
+        /* ===== Responsive Adjustments ===== */
+        @media (max-width: 640px) {
+            .main-content {
+                padding: 24px 16px 40px;
+                gap: 24px;
+            }
+            .page-title {
+                font-size: 24px;
+            }
+            .page-subtitle {
+                font-size: 14px;
+            }
+            .editorial-card {
+                padding: 16px;
+            }
+            .action-bar {
+                flex-direction: column-reverse;
+                align-items: stretch;
+            }
+            .btn-group {
+                width: 100%;
+            }
+            .btn-ghost, .btn-primary {
+                flex: 1;
+                justify-content: center;
+            }
+            .shortcut-hint {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="brand-title">
+                <span>Emotion Lab</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-indicator">
+                    <span class="status-dot" id="header-status-dot"></span>
+                    <span id="header-status-text">Checking status…</span>
+                </div>
+                <button class="nav-link" onclick="scrollToHistory()">History</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+
+        <!-- Intro -->
+        <section class="page-intro">
+            <h1 class="page-title">Emotion Detector</h1>
+            <p class="page-subtitle">Understand the emotional signal behind your words.</p>
+        </section>
+
+        <!-- 2-Column Workspace Grid -->
+        <div class="workspace-grid">
+            
+            <!-- Left Column: Source Text -->
+            <section class="editorial-card" id="source-section">
+                <div class="card-header-row">
+                    <span class="meta-label">Source Text</span>
+                    <span class="meta-label" id="char-counter" style="color: var(--text-muted);">0 / 2000</span>
+                </div>
+
+                <div class="editor-container">
+                    <textarea 
+                        id="text-input" 
+                        class="textarea-box"
+                        maxlength="2000"
+                        placeholder="Paste or type your text here for emotional analysis. The model evaluates linguistic nuances to determine the dominant emotional state."
+                    ></textarea>
+
+                    <div class="action-bar">
+                        <div class="btn-group" style="margin-left: auto;">
+                            <button type="button" class="btn-ghost" id="btn-clear" onclick="clearInput()">Clear</button>
+                            <button type="button" class="btn-primary" id="btn-analyze" onclick="predict()">
+                                Analyze Emotion
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Analysis -->
+            <section class="editorial-card analysis-panel" id="analysis-section">
+                <div class="card-header-row">
+                    <span class="meta-label">Analysis</span>
+                </div>
+
+                <!-- Empty State (Shown initially) -->
+                <div id="analysis-empty" class="analysis-empty-state">
+                    <div class="analysis-empty-icon">📊</div>
+                    <div class="analysis-empty-text">Enter text and click Analyze Emotion to inspect the emotional signal.</div>
+                </div>
+
+                <!-- Active Result Container -->
+                <div id="analysis-result-content" style="display: none; flex-direction: column; flex: 1;">
+                    <!-- Top Predicted Result -->
+                    <div class="top-result">
+                        <div class="result-main-row">
+                            <span class="result-emoji" id="res-emoji">😊</span>
+                            <h2 class="result-emotion-title" id="res-emotion">Joy</h2>
+                        </div>
+                        <div class="result-confidence-text">
+                            <span id="res-confidence">92.4%</span> confidence
+                        </div>
+                    </div>
+
+                    <!-- Emotional Profile -->
+                    <div class="profile-section-title">
+                        <span class="meta-label">Emotional Profile</span>
+                    </div>
+
+                    <div class="distribution-list" id="distribution-bars">
+                        <!-- Six emotion bars dynamically rendered here -->
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+
+        <!-- Recent Analyses Section -->
+        <section class="history-card" id="history-section">
+            <div class="history-card-header">
+                <span class="meta-label">Recent Analyses</span>
+                <button type="button" class="btn-clear-history" onclick="clearHistory()">Clear History</button>
+            </div>
+
+            <div class="history-table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 180px;">Prediction</th>
+                            <th>Text Preview</th>
+                            <th style="width: 120px; text-align: right;">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                        <tr>
+                            <td colspan="3" class="empty-history-msg">No analyses recorded yet. Run your first prediction above.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Technical Footer -->
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-specs">
+                <span>BiGRU</span>
+                <span>·</span>
+                <span>6 emotion classes</span>
+                <span>·</span>
+                <span>92.55% test accuracy</span>
+                <span>·</span>
+                <span id="footer-server-status">Server: Online</span>
+            </div>
+            <div class="footer-links">
+                <a href="#source-section">Detector</a>
+                <a href="#history-section">History</a>
+                <a href="/docs" target="_blank" rel="noopener noreferrer">API Specs</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Error / Info Toast -->
+    <div class="toast-notification" id="error-toast" role="alert">
+        <span class="toast-dot"></span>
+        <span id="toast-message">Message</span>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Emotion metadata (Strictly matching the 6 backend classes)
+        const EMOTION_LABELS = ['joy', 'sadness', 'love', 'anger', 'fear', 'surprise'];
+        const EMOTION_EMOJIS = {
+            joy: '😊',
+            sadness: '😔',
+            love: '😍',
+            anger: '😠',
+            fear: '😨',
+            surprise: '😮'
+        };
+
+        let historyList = [];
+
+        // DOM Elements
+        const textInput = document.getElementById('text-input');
+        const charCounter = document.getElementById('char-counter');
+        const btnAnalyze = document.getElementById('btn-analyze');
+        const analysisEmpty = document.getElementById('analysis-empty');
+        const analysisResultContent = document.getElementById('analysis-result-content');
+        const resEmoji = document.getElementById('res-emoji');
+        const resEmotion = document.getElementById('res-emotion');
+        const resConfidence = document.getElementById('res-confidence');
+        const distributionBars = document.getElementById('distribution-bars');
+        const historyTbody = document.getElementById('history-tbody');
+        const headerStatusDot = document.getElementById('header-status-dot');
+        const headerStatusText = document.getElementById('header-status-text');
+        const footerServerStatus = document.getElementById('footer-server-status');
+        const errorToast = document.getElementById('error-toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        // Character counter live update
+        textInput.addEventListener('input', () => {
+            const length = textInput.value.length;
+            charCounter.textContent = `${length} / 2000`;
+        });
+
+        // Sample buttons click handler
+        document.querySelectorAll('.sample-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                textInput.value = btn.dataset.sample;
+                textInput.dispatchEvent(new Event('input'));
+                textInput.focus();
+            });
+        });
+
+        // Keyboard Shortcut: Ctrl+Enter / Cmd+Enter
+        textInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                predict();
+            }
+        });
+
+        // Predict Function
+        async function predict() {
+            const text = textInput.value.trim();
+            if (!text) {
+                showToast('Please enter text to analyze.');
+                textInput.focus();
+                return;
+            }
+
+            // Set loading state
+            btnAnalyze.disabled = true;
+            btnAnalyze.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || `Server responded with status ${response.status}`);
+                }
+
+                const result = await response.json();
+                renderResult(result);
+                addToHistory(result);
+
+            } catch (err) {
+                showToast(err.message || 'An error occurred while analyzing emotion.');
+            } finally {
+                btnAnalyze.disabled = false;
+                btnAnalyze.textContent = 'Analyze Emotion';
+            }
+        }
+
+        // Render Prediction Result
+        function renderResult(data) {
+            analysisEmpty.style.display = 'none';
+            analysisResultContent.style.display = 'flex';
+
+            resEmoji.textContent = data.emoji || EMOTION_EMOJIS[data.predicted_emotion] || '✨';
+            resEmotion.textContent = data.predicted_emotion;
+            resConfidence.textContent = `${(data.confidence * 100).toFixed(1)}%`;
+
+            // Sort all 6 emotions descending by probability
+            const sortedEntries = Object.entries(data.all_probabilities || {})
+                .sort((a, b) => b[1] - a[1]);
+
+            distributionBars.innerHTML = sortedEntries.map(([emotion, prob]) => {
+                const isTop = emotion.toLowerCase() === data.predicted_emotion.toLowerCase();
+                const pct = (prob * 100).toFixed(1);
+                return `
+                    <div class="dist-row ${isTop ? 'is-active' : ''}">
+                        <span class="dist-label">${escapeHtml(emotion)}</span>
+                        <div class="dist-track-wrap">
+                            <div class="dist-fill" data-width="${pct}" style="width: 0%;"></div>
+                        </div>
+                        <span class="dist-value">${pct}%</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Smoothly animate bar widths
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document.querySelectorAll('.dist-fill').forEach(fill => {
+                        fill.style.width = `${fill.dataset.width}%`;
+                    });
+                });
+            });
+        }
+
+        // History Management
+        function addToHistory(data) {
+            const entry = {
+                ...data,
+                timestamp: new Date()
+            };
+            historyList.unshift(entry);
+            if (historyList.length > 10) historyList.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (historyList.length === 0) {
+                historyTbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="empty-history-msg">No analyses recorded yet. Run your first prediction above.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            historyTbody.innerHTML = historyList.map((item, index) => {
+                const timeAgo = formatTimeAgo(item.timestamp);
+                const confPercent = (item.confidence * 100).toFixed(1);
+                return `
+                    <tr class="history-row" onclick="replayHistory(${index})" title="Click to replay analysis">
+                        <td class="history-cell">
+                            <div class="history-pred-wrap">
+                                <span>${item.emoji || EMOTION_EMOJIS[item.predicted_emotion] || '✨'}</span>
+                                <strong style="text-transform: capitalize; color: var(--text-primary); font-weight: 600;">${escapeHtml(item.predicted_emotion)}</strong>
+                                <span class="history-tag">${confPercent}%</span>
+                            </div>
+                        </td>
+                        <td class="history-cell">
+                            <div class="history-text-preview">"${escapeHtml(item.text)}"</div>
+                        </td>
+                        <td class="history-cell history-time">${timeAgo}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function replayHistory(index) {
+            const item = historyList[index];
+            if (!item) return;
+            textInput.value = item.text;
+            textInput.dispatchEvent(new Event('input'));
+            renderResult(item);
+            document.getElementById('source-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearHistory() {
+            historyList = [];
+            renderHistory();
+            showToast('History cleared.');
+        }
+
+        function clearInput() {
+            textInput.value = '';
+            textInput.dispatchEvent(new Event('input'));
+            analysisEmpty.style.display = 'flex';
+            analysisResultContent.style.display = 'none';
+            textInput.focus();
+        }
+
+        function scrollToHistory() {
+            document.getElementById('history-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Relative time helper
+        function formatTimeAgo(date) {
+            if (!date) return 'Just now';
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            if (seconds < 30) return 'Just now';
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            return `${Math.floor(hours / 24)}d ago`;
+        }
+
+        // Toast notifications
+        let toastTimeout = null;
+        function showToast(msg) {
+            toastMessage.textContent = msg;
+            errorToast.classList.add('is-visible');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                errorToast.classList.remove('is-visible');
+            }, 3500);
+        }
+
+        // Helper to sanitize text
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Health Monitoring
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                if (!res.ok) throw new Error('Health check failed');
+                const data = await res.json();
+                
+                if (data.model_loaded) {
+                    headerStatusDot.className = 'status-dot online';
+                    headerStatusText.textContent = 'Model online';
+                    footerServerStatus.textContent = 'Server: Online';
+                } else {
+                    headerStatusDot.className = 'status-dot offline';
+                    headerStatusText.textContent = 'Model not loaded';
+                    footerServerStatus.textContent = 'Server: Degraded';
+                }
+            } catch (err) {
+                headerStatusDot.className = 'status-dot offline';
+                headerStatusText.textContent = 'Server offline';
+                footerServerStatus.textContent = 'Server: Offline';
+            }
+        }
+
+        // Initial Health Check and Poll every 30 seconds
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+</html>
