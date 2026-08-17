@@ -3,18 +3,35 @@
 # Emotion Lab — Neural Emotion Inference Engine
 ### Production-Grade Deep Learning NLP Pipeline & Real-Time Editorial Instrument
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![TensorFlow / Keras](https://img.shields.io/badge/TensorFlow-2.x-FF6F00.svg?style=flat&logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
-[![Accuracy](https://img.shields.io/badge/Test%20Accuracy-92.55%25-brightgreen.svg?style=flat)]()
-[![Inference Latency](https://img.shields.io/badge/p95%20Latency-%3C15ms-blue.svg?style=flat)]()
-[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat)]()
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://emotion-detector-8iae.onrender.com/)
+[![API Docs](https://img.shields.io/badge/Swagger%20UI-OpenAPI%203.1-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://emotion-detector-8iae.onrender.com/docs)
+[![Python 3.11](https://img.shields.io/badge/python-3.11+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00.svg?style=for-the-badge&logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
+
+[![Accuracy](https://img.shields.io/badge/Test%20Accuracy-92.55%25-brightgreen.svg?style=flat-square)]()
+[![Inference Latency](https://img.shields.io/badge/p95%20Latency-%3C15ms-blue.svg?style=flat-square)]()
+[![Build Status](https://img.shields.io/badge/Deployment-Live-success?style=flat-square)]()
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)]()
 
 <p align="center">
   A high-throughput, low-latency text sentiment and emotion classification system powered by a stacked Bidirectional Gated Recurrent Unit (BiGRU) neural network, serving real-time probabilities across 6 discrete human emotion taxonomies via an asynchronous FastAPI engine and a Google Stitch-engineered editorial client.
 </p>
 
+[**Live Web Application**](https://emotion-detector-8iae.onrender.com/) • [**Interactive API Documentation**](https://emotion-detector-8iae.onrender.com/docs) • [**Health Probe**](https://emotion-detector-8iae.onrender.com/health)
+
 </div>
+
+---
+
+## Quick Reference Links
+
+| Resource | URL | Status |
+| :--- | :--- | :--- |
+| **Production Web UI** | [https://emotion-detector-8iae.onrender.com/](https://emotion-detector-8iae.onrender.com/) | `🟢 Live` |
+| **Interactive API Specs (Swagger)** | [https://emotion-detector-8iae.onrender.com/docs](https://emotion-detector-8iae.onrender.com/docs) | `🟢 Ready` |
+| **Redoc API Reference** | [https://emotion-detector-8iae.onrender.com/redoc](https://emotion-detector-8iae.onrender.com/redoc) | `🟢 Ready` |
+| **Live Health Probe** | [https://emotion-detector-8iae.onrender.com/health](https://emotion-detector-8iae.onrender.com/health) | `🟢 Active` |
 
 ---
 
@@ -228,6 +245,8 @@ Engineered strictly against **Google Stitch** editorial guidelines:
 
 ```
 dlnlp_project/
+├── .python-version             # Pinned Python version (3.11.9) for cloud buildpacks
+├── .gitignore                  # Production Git ignore rules
 ├── Artifacts/
 │   ├── BIGRU.keras             # Serialized stacked BiGRU deep learning weights
 │   └── Tokenizer.pkl           # Pickled vocabulary tokenizer index
@@ -235,6 +254,8 @@ dlnlp_project/
 │   └── index.html              # Single-page editorial client (HTML5/CSS3/ES6+)
 ├── dlnlp.ipynb                 # Model exploratory analysis, training, & evaluation
 ├── main.py                     # High-performance FastAPI backend application
+├── requirements.txt            # Slim production runtime dependencies (FastAPI, TF-CPU)
+├── requirements-dev.txt        # Full training and notebook development dependencies
 └── README.md                   # System design, architecture, and developer manual
 ```
 
@@ -245,12 +266,11 @@ dlnlp_project/
 ### Prerequisites
 - Python `3.10` or `3.11`
 - Pip & Virtualenv / Conda
-- TensorFlow `2.15+` / `2.21+`
 
 ### Step 1: Clone & Environment Setup
 ```bash
-git clone <repository-url>
-cd dlnlp_project
+git clone https://github.com/kumarvishal10351/Emotion-Detector.git
+cd Emotion-Detector
 
 # Create isolated virtual environment
 python -m venv venv
@@ -261,8 +281,8 @@ source venv/bin/activate
 # On Windows:
 .\venv\Scripts\activate
 
-# Install dependencies
-pip install fastapi uvicorn tensorflow numpy pydantic
+# Install production dependencies
+pip install -r requirements.txt
 ```
 
 ### Step 2: Launch the Inference Server
@@ -277,21 +297,21 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-## 8. Automated Verification & Testing
+## 8. Automated Live Verification & Testing
 
-Execute integration and regression validation via terminal:
+Execute integration and regression validation directly against the **Live Production Deployment**:
 
 ```bash
-# 1. Health Probe
-curl -s http://localhost:8000/health | python -m json.tool
+# 1. Production Health Probe
+curl -s https://emotion-detector-8iae.onrender.com/health | python -m json.tool
 
-# 2. Prediction Test (Joy Sample)
-curl -s -X POST http://localhost:8000/predict \
+# 2. Production Emotion Inference Test (Joy Sample)
+curl -s -X POST https://emotion-detector-8iae.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{"text": "I finally got the job I have been waiting for!"}' | python -m json.tool
 
-# 3. Prediction Test (Anger Sample)
-curl -s -X POST http://localhost:8000/predict \
+# 3. Production Emotion Inference Test (Anger Sample)
+curl -s -X POST https://emotion-detector-8iae.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{"text": "I am really angry about what happened."}' | python -m json.tool
 ```
@@ -302,10 +322,11 @@ curl -s -X POST http://localhost:8000/predict \
 
 - **XSS Sanitization**: Frontend enforces character escape transformation on raw inputs before DOM insertion into recent analysis history.
 - **Resource Protection**: Max payload constraint strictly bounded at 2,000 characters to prevent buffer bloat and denial-of-service memory pressure.
-- **Thread Safety**: Thread-safe inference execution across ASGI worker processes.
+- **Thread Safety & Zero Cold Starts**: Thread-safe inference execution with pre-warmed weights loaded during application startup.
 
 ---
 
 <div align="center">
-  <sub>Engineered with precision for Natural Language Understanding & Emotional AI.</sub>
+  <sub>Engineered with precision for Natural Language Understanding & Emotional AI.</sub><br>
+  <sub>Live Deployment: <a href="https://emotion-detector-8iae.onrender.com/">https://emotion-detector-8iae.onrender.com/</a></sub>
 </div>
