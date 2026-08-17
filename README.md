@@ -23,8 +23,8 @@
 Emotion Lab provides automated fine-grained emotional intelligence extraction from unstructured human natural language. The system bridges natural language understanding (NLU) with an editorial text-analysis instrument, delivering continuous probability distributions across six core emotional states: **Joy**, **Sadness**, **Love**, **Anger**, **Fear**, and **Surprise**.
 
 ```mermaid
-graph LR
-    subgraph Client ["Client Layer (Stitch Editorial UI)"]
+flowchart LR
+    subgraph Client ["Client Layer - Stitch Editorial UI"]
         UI["Source Text Editor"]
         HIST["Client-side History & Replay"]
         MON["Health Polling (30s SLA)"]
@@ -35,21 +35,21 @@ graph LR
         RATE["Input Validation & Limits"]
     end
 
-    subgraph Service ["FastAPI Microservice (main.py)"]
+    subgraph Service ["FastAPI Microservice"]
         ROUTER["Route Controllers"]
         PRE["Regex Normalization Engine"]
         LIFECYCLE["Async Lifespan State Manager"]
     end
 
-    subgraph ML ["Inference Engine (TensorFlow/Keras)"]
-        TOK["Serialized Tokenizer (Artifacts/Tokenizer.pkl)"]
+    subgraph ML ["Inference Engine"]
+        TOK["Serialized Tokenizer"]
         PAD["Post-Sequence Padder (maxlen=50)"]
-        BIGRU["Stacked BiGRU Neural Net (Artifacts/BIGRU.keras)"]
+        BIGRU["Stacked BiGRU Neural Net"]
         SOFTMAX["Softmax Multi-Class Probability"]
     end
 
-    UI -->|POST /predict (JSON)| CORS
-    MON -->|GET /health| CORS
+    UI -->|"POST /predict"| CORS
+    MON -->|"GET /health"| CORS
     CORS --> RATE
     RATE --> ROUTER
     ROUTER --> PRE
@@ -57,11 +57,11 @@ graph LR
     TOK --> PAD
     PAD --> BIGRU
     BIGRU --> SOFTMAX
-    SOFTMAX -->|Probabilities + Top Class| ROUTER
-    ROUTER -->|PredictionResponse| UI
+    SOFTMAX -->|"Class Probabilities"| ROUTER
+    ROUTER -->|"PredictionResponse"| UI
     UI --> HIST
-    LIFECYCLE -.->|Loads on Startup| BIGRU
-    LIFECYCLE -.->|Loads on Startup| TOK
+    LIFECYCLE -.->|"Loads on Startup"| BIGRU
+    LIFECYCLE -.->|"Loads on Startup"| TOK
 ```
 
 ---
